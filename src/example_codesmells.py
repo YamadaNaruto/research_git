@@ -1,166 +1,151 @@
-# smelly_code.py
-# 意図的にコードスメルを大量に含むサンプル
+# ===== さらにコードスメルを追加 =====
 
-import os, sys, json, math, random, datetime  # 未使用importだらけ
-
-GLOBAL_A = 10
-GLOBAL_B = 20
-GLOBAL_LIST = []
-
-
-class VeryBadClass:
+# 1. 巨大クラス（Large Class）
+class MonsterClass:
     def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.z = 0
+        self.a = 0
+        self.b = 0
+        self.c = 0
+        self.d = 0
+        self.e = 0
+        self.f = 0
 
-    def do_everything(self, a, b, c, d, e, f, g):  # 引数が多すぎる
-        result = 0
-        if a > 0:
-            if b > 0:
-                if c > 0:
-                    if d > 0:
-                        if e > 0:
-                            if f > 0:
-                                if g > 0:  # 深すぎるネスト
-                                    result = a + b + c + d + e + f + g
-                                else:
-                                    result = -1
-                            else:
-                                result = -2
-                        else:
-                            result = -3
-                    else:
-                        result = -4
-                else:
-                    result = -5
-            else:
-                result = -6
-        else:
-            result = -7
-
-        for i in range(100):
-            for j in range(100):  # 無意味な二重ループ
-                result += 1
-
-        return result
+    def method1(self): return self.a
+    def method2(self): return self.b
+    def method3(self): return self.c
+    def method4(self): return self.d
+    def method5(self): return self.e
+    def method6(self): return self.f
+    def method7(self): return self.a + self.b
+    def method8(self): return self.c + self.d
+    def method9(self): return self.e + self.f
+    def method10(self): return self.a + self.b + self.c
+    def method11(self): return self.d + self.e + self.f
+    def method12(self): return self.a * self.b * self.c
+    def method13(self): return self.d * self.e * self.f
 
 
-def god_function(x):  # 神関数（長すぎ・責務過多）
-    total = 0
-    data = []
-    tmp = None
-
-    for i in range(50):
-        if i % 2 == 0:
-            total += i
-        else:
-            total -= i
-
-    for i in range(10):
-        for j in range(10):
-            for k in range(10):
-                total += i + j + k
-
-    if x == 1:
-        print("one")
-    elif x == 2:
-        print("two")
-    elif x == 3:
-        print("three")
-    elif x == 4:
-        print("four")
-    elif x == 5:
-        print("five")
-    elif x == 6:
-        print("six")
-    elif x == 7:
-        print("seven")
-    elif x == 8:
-        print("eight")
-    elif x == 9:
-        print("nine")
+# 2. Boolean引数アンチパターン
+def boolean_argument(flag):
+    if flag == True:
+        print("Flag is true")
     else:
-        print("other")
+        print("Flag is false")
 
+
+# 3. 意味のない条件分岐
+def pointless_condition(x):
+    if x == x:  # 常にTrue
+        return True
+    else:
+        return False
+
+
+# 4. 同じロジックのコピペ量産（重複）
+def duplicate_code_3(a, b):
+    if a > b:
+        return a - b
+    else:
+        return b - a
+
+
+def duplicate_code_4(a, b):
+    if a > b:
+        return a - b
+    else:
+        return b - a
+
+
+# 5. 深すぎるネスト（if + for）
+def insane_nesting(n):
+    for i in range(n):
+        if i > 0:
+            for j in range(n):
+                if j > 0:
+                    for k in range(n):
+                        if k > 0:
+                            print(i, j, k)
+
+
+# 6. 不要なelse（早期returnできる）
+def useless_else(x):
+    if x > 0:
+        return "positive"
+    else:
+        return "not positive"
+
+
+# 7. 空の関数（実装なし）
+def empty_function():
+    pass
+
+
+# 8. 不要な型変換
+def useless_cast(x):
+    y = int(x)
+    z = int(y)
+    return int(z)
+
+
+# 9. 定数化すべき値の乱用
+def more_magic_numbers():
+    return (5 * 17) + (99 / 3) - 42 + 1234
+
+
+# 10. try-exceptの乱用
+def exception_abuse():
     try:
-        a = 1 / 0  # 例外をわざと発生
+        try:
+            try:
+                x = int("not_a_number")
+            except:
+                pass
+        except:
+            pass
     except:
-        pass  # 例外握りつぶし
-
-    unused_variable = 12345  # 未使用変数
-    data.append(total)
-    return total
+        pass
 
 
-def duplicate_code_1(a, b):
-    if a > b:
-        return a - b
-    else:
-        return b - a
+# 11. 未使用関数（Dead Code）
+def never_called_function():
+    print("I will never be called")
 
 
-def duplicate_code_2(a, b):  # コード重複
-    if a > b:
-        return a - b
-    else:
-        return b - a
-
-
-def magic_numbers():
-    x = 42
-    y = 1337
-    z = x * 3 + y * 7 - 99  # マジックナンバー
-    return z
-
-
-def too_many_returns(x):
-    if x < 0:
-        return -1
-    if x == 0:
-        return 0
-    if x == 1:
+# 12. 条件分岐の肥大化（if-elif地獄）
+def switch_like(value):
+    if value == "a":
         return 1
-    if x == 2:
+    elif value == "b":
         return 2
-    if x == 3:
+    elif value == "c":
         return 3
-    return 999
+    elif value == "d":
+        return 4
+    elif value == "e":
+        return 5
+    elif value == "f":
+        return 6
+    elif value == "g":
+        return 7
+    elif value == "h":
+        return 8
+    elif value == "i":
+        return 9
+    else:
+        return 0
 
 
-def dead_code():
-    print("This is used")
-    return
-    print("This is dead code")  # 到達不能コード
+# 13. グローバル変数さらに悪用
+def global_mess():
+    global GLOBAL_B
+    GLOBAL_B = GLOBAL_B * 2 + 1 - 3 + 7
+    return GLOBAL_B
 
 
-def global_state_abuse():
-    global GLOBAL_A
-    GLOBAL_A += 1
-    GLOBAL_LIST.append(GLOBAL_A)
-    return GLOBAL_LIST
+# 14. 意味のないループ
+def useless_loop():
+    for i in range(1000):
+        pass
+    return "done"
 
 
-def meaningless_function():
-    a = 1
-    b = 2
-    c = 3
-    d = 4
-    e = 5
-    f = 6
-    g = 7
-    h = 8
-    i = 9
-    j = 10
-    return a + b + c + d + e + f + g + h + i + j
-
-
-if __name__ == "__main__":
-    obj = VeryBadClass()
-    print(obj.do_everything(1, 2, 3, 4, 5, 6, 7))
-    print(god_function(5))
-    print(duplicate_code_1(10, 3))
-    print(duplicate_code_2(10, 3))
-    print(magic_numbers())
-    print(too_many_returns(3))
-    print(global_state_abuse())
