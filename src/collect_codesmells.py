@@ -1,4 +1,4 @@
-#git log からコミットごとにテストスメルを検出してCSVに保存するスクリプト
+#git log からコミットごとにコードスメルを検出してCSVに保存するスクリプト
 import subprocess
 import os
 from pathlib import Path
@@ -15,7 +15,7 @@ def get_hashes_of_file(file_path):
 
 
 
-#ファイルの中身を一時的にファイルに保存してテストスメル検出スクリプトに渡す
+#ファイルの中身を一時的にファイルに保存してコードスメル検出スクリプトに渡す
 def get_content_file_at_commit(commit_hash, file_path):
     """指定したコミット時点のファイル内容を取得する"""
     content = subprocess.run(
@@ -28,24 +28,25 @@ def get_content_file_at_commit(commit_hash, file_path):
        
     
 
-hashes = get_hashes_of_file('test_unittest_multiple.py')
+hashes = get_hashes_of_file('code.py')#解析するファイル指定
 base_tmp=Path("/Users/yamadanaruto/Desktop/mothertests")
 base_tmp.mkdir(exist_ok=True)
 i=0
 for commits_hash in hashes:
     
-    content = get_content_file_at_commit (hashes[0], 'example/test_unittest_multiple.py')
+    content = get_content_file_at_commit (hashes[0], 'code/yourcode.py')
     #print(f'Commit: {commits_hash}\nContent:\n{content}\n')    
 
 #ファイルに内容を書き込む
-    path = f'/Users/yamadanaruto/Desktop/mothertests/testing/test_example{i}.py'
+    path = f'/Users/yamadanaruto/Desktop/mothertests/testing/test_example{i}.py'#書き込む場所
     f = open(path, 'w')
     f.write(content)  
     f.close()
     i+=1
-        #テストスメル検出するコマンドを実行
+        #コードスメル検出するコマンドを実行
+        #sonarpropertiesのinclutionのとこを解析したいファイル(フォルダ)に指定
 result = subprocess.run(
-            ['python3', '/Users/yamadanaruto/Downloads/PyNose-ASE2022/runner.py'],
+            ['sonar-scanner'],
                     capture_output=True,
                     text=True,
                     check=True

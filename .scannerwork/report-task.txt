@@ -1,0 +1,6 @@
+projectKey=detect-codesmells
+serverUrl=http://localhost:9000
+serverVersion=25.12.0.117093
+dashboardUrl=http://localhost:9000/dashboard?id=detect-codesmells
+ceTaskId=179b0e84-8f10-4f0e-a3f3-8bb96038b921
+ceTaskUrl=http://localhost:9000/api/ce/task?id=179b0e84-8f10-4f0e-a3f3-8bb96038b921

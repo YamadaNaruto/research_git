@@ -1,0 +1,3 @@
+#snor web apiを用いて得た情報をコードスメルに限定して整理してcsvファイルに保存
+#SONOR_TOKEN="sqp_a0557eb63cc2ab72ff87eb154746eb49ab73ccf8"
+#curl -uを用いてjsonファイルを出力する
