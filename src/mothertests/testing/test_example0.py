@@ -116,3 +116,26 @@ class SkippedClass(unittest.TestCase):
 
     def test_sleepy(self):
         time.sleep(5)
+
+    def test_roulette_extreme(self):
+        assert 1 == 1
+        assert 2 == 3
+        assert 3 == 4
+        assert 4 == 5
+        assert 5 == 6
+
+    def test_magic_numbers(self):
+        result = 123 * 456
+        assert result == 56088
+        
+    def test_duplicate_1(self):
+        a = 5
+        b = 10
+        c = a + b
+        assert c == 15
+
+    def test_duplicate_2(self):
+        a = 5
+        b = 10
+        c = a + b
+        assert c == 15
