@@ -1,7 +1,10 @@
 #git log からコミットごとにテストスメルを検出してCSVに保存するスクリプト
 import subprocess
 import os
+import shutil
 from pathlib import Path
+
+
 def get_hashes_of_file(file_path):
     """指定してファイルのコミットハッシュを入手する"""
     result = subprocess.run(
@@ -26,30 +29,40 @@ def get_content_file_at_commit(commit_hash, file_path):
     ).stdout
     return content
        
+def main():
+    hashes = get_hashes_of_file('mothertests/testing/test_example0.py')#現在の階層も含んだパス
+   
+    i=0
+    for commits_hash in hashes:
+        
+        content = get_content_file_at_commit (commits_hash, 'src/mothertests/testing/test_example0.py')
+        #print(f'Commit: {commits_hash}\nContent:\n{content}\n')    
+
+    #ファイルに内容を書き込む
+        path = Path(f'/Users/yamadanaruto/Desktop/mothertests/testing{i}/test_example{i}.py')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+         
+       
+            #テストスメル検出するコマンドを実行
+        result = subprocess.run(
+                    ['python3', '/Users/yamadanaruto/Downloads/PyNose-ASE2022/runner.py'],
+                            capture_output=True,
+                            text=True,
+                            check=True
+                    )
+        folder_path = Path(f"/Users/yamadanaruto/Desktop/mothertests/testing{i}")
+        if folder_path.exists():
+            shutil.rmtree(folder_path)
+            print("フォルダごと削除しました")
+            i+=1
+
+if __name__ == "__main__":
+    main()
+
     
 
-hashes = get_hashes_of_file('test_unittest_multiple.py')
-base_tmp=Path("/Users/yamadanaruto/Desktop/mothertests")
-base_tmp.mkdir(exist_ok=True)
-i=0
-for commits_hash in hashes:
-    
-    content = get_content_file_at_commit (hashes[0], 'example/test_unittest_multiple.py')
-    #print(f'Commit: {commits_hash}\nContent:\n{content}\n')    
 
-#ファイルに内容を書き込む
-    path = f'/Users/yamadanaruto/Desktop/mothertests/testing/test_example{i}.py'
-    f = open(path, 'w')
-    f.write(content)  
-    f.close()
-    i+=1
-        #テストスメル検出するコマンドを実行
-result = subprocess.run(
-            ['python3', '/Users/yamadanaruto/Downloads/PyNose-ASE2022/runner.py'],
-                    capture_output=True,
-                    text=True,
-                    check=True
-             )
                          
 
         
