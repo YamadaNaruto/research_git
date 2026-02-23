@@ -18,7 +18,7 @@ def get_hashes_of_file(file_path):
 def get_commit_time(file_path):
     """コミットの時刻を入手する"""
     result = subprocess.run(
-        ['git','log','--pretty=format:%ad','--',file_path],
+        ['git','log','--pretty=format:%ad','--date=format:"%Y-%m-%d %H:%M:%S"','--',file_path],
         capture_output=True,
         text=True,
         check=True
@@ -37,13 +37,13 @@ def get_content_file_at_commit(commit_hash, file_path):
     return content
        
 def main():
-    hashes = get_hashes_of_file('mothertests/testing/test_example0.py')#対象ファイルのパス
-    times = get_commit_time('mothertests/testing/test_example0.py')
+    hashes = get_hashes_of_file('tests/test_plugin.py')#対象ファイルのパス(現在の階層含まないスラッシュなし)
+    times = get_commit_time('tests/test_plugin.py')#対象ファイルのパス(現在の階層含まないスラッシュなし)
     print(times)
     i=0
     for commits_hash in hashes:
         
-        content = get_content_file_at_commit (commits_hash, 'src/mothertests/testing/test_example0.py')
+        content = get_content_file_at_commit (commits_hash, 'tests/test_plugin.py')#現在の階層含まない(スラッシュ含まない)
         #print(f'Commit: {commits_hash}\nContent:\n{content}\n')    
 
     #ファイルに内容を書き込む
