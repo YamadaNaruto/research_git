@@ -92,6 +92,6 @@ for repo_df, result in zip(REPO_DATA_FRAMES, REPO_RESULTS):
     aggregated_lines.append(line)
 
 
-aggregated_df = pd.DataFrame(aggregated_lines, columns=['repo_name', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
+aggregated_df = pd.DataFrame(aggregated_lines, columns=['Date', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
 aggregated_df.to_csv(JSON_FILE_PATHS[0].parent / 'aggregated.csv', index=False)
 print('Aggregated result generated')
