@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import json
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -34,64 +35,67 @@ class FileResult:
 class Result:
     result: List[FileResult]
 
+#解析するフォルダを指定→ループで解析するフォルダ内のフォルダを指定→したのDETECTOR_OUTPUTをそのフォルダに指定してループする
+folder_path = "/Users/yamadanaruto/Desktop/collect_json"
+for foldername in os.listdir(folder_path):
+    folder = os.path.join(folder_path,foldername)
+    DETECTOR_OUTPUT = Path(folder)
+    JSON_FILE_PATHS = [p for p in DETECTOR_OUTPUT.iterdir() if p.is_file() and p.suffix == '.json']
+    ALL_SMELLS = None
 
-DETECTOR_OUTPUT = Path('/Users/yamadanaruto/Desktop/pynose_output2')
-JSON_FILE_PATHS = [p for p in DETECTOR_OUTPUT.iterdir() if p.is_file() and p.suffix == '.json']
-ALL_SMELLS = None
+    count = 0
+    REPO_DATA_FRAMES = []
+    REPO_RESULTS = []
+    for json_file_path in JSON_FILE_PATHS:
+        with json_file_path.open() as f:
+            json_str = f.read()
 
-count = 0
-REPO_DATA_FRAMES = []
-REPO_RESULTS = []
-for json_file_path in JSON_FILE_PATHS:
-    with json_file_path.open() as f:
-        json_str = f.read()
-
-    json_root = json.loads(json_str)
-    if isinstance(json_root, list):
-        json_root = {'result': json_root}
-        result = Result.from_json(json.dumps(json_root))
-    else:
-        result = Result.from_json(json_str)
-    lines = []
-    for test_file, test_case in ((tf, tc) for tf in result.result for tc in tf.test_cases):
-        line = [json_file_path.stem, test_file.name, test_case.name]
-
-        detector_results = sorted(test_case.detector_results, key=lambda dr: dr.name)
-        if ALL_SMELLS is None:
-            ALL_SMELLS = [dr.name for dr in detector_results]
+        json_root = json.loads(json_str)
+        if isinstance(json_root, list):
+            json_root = {'result': json_root}
+            result = Result.from_json(json.dumps(json_root))
         else:
-            assert ALL_SMELLS == [dr.name for dr in detector_results]
+            result = Result.from_json(json_str)
+        lines = []
+        for test_file, test_case in ((tf, tc) for tf in result.result for tc in tf.test_cases):
+            line = [json_file_path.stem, test_file.name, test_case.name]
 
-        for detector_result in detector_results:
-            line.append(detector_result.has_smell)
+            detector_results = sorted(test_case.detector_results, key=lambda dr: dr.name)
+            if ALL_SMELLS is None:
+                ALL_SMELLS = [dr.name for dr in detector_results]
+            else:
+                assert ALL_SMELLS == [dr.name for dr in detector_results]
 
-        lines.append(line)
-    df = pd.DataFrame(lines, columns=['repo_name', 'test_file', 'test_case'] + ALL_SMELLS)
-    df.to_csv(json_file_path.parent / f'{json_file_path.stem}.csv', index=False)
-    REPO_DATA_FRAMES.append(df)
-    REPO_RESULTS.append(result)
-    count += 1
+            for detector_result in detector_results:
+                line.append(detector_result.has_smell)
 
-print(f'Converted {count} JSON file(s).')
+            lines.append(line)
+        df = pd.DataFrame(lines, columns=['repo_name', 'test_file', 'test_case'] + ALL_SMELLS)
+        df.to_csv(json_file_path.parent / f'{json_file_path.stem}.csv', index=False)
+        REPO_DATA_FRAMES.append(df)
+        REPO_RESULTS.append(result)
+        count += 1
 
-aggregated_lines = []
-for repo_df, result in zip(REPO_DATA_FRAMES, REPO_RESULTS):
-    if len(repo_df) == 0:
-        continue
-    repo_name = repo_df['repo_name'][0]
-    repo_test_file_count = len(result.result)
-    repo_test_case_count = sum(len(tf.test_cases) for tf in result.result)
-    repo_test_method_count = sum(tc.number_of_methods for tf in result.result for tc in tf.test_cases)
-    line = [repo_name, repo_test_file_count, repo_test_case_count, repo_test_method_count] 
-    total = 0
-    for smell in ALL_SMELLS:
-        line.append(sum(repo_df[smell]))
-        total += sum(repo_df[smell])
-        #print(total)
-    line.append(total)
-    aggregated_lines.append(line)
+    print(f'Converted {count} JSON file(s).')
+
+    aggregated_lines = []
+    for repo_df, result in zip(REPO_DATA_FRAMES, REPO_RESULTS):
+        if len(repo_df) == 0:
+            continue
+        repo_name = repo_df['repo_name'][0]
+        repo_test_file_count = len(result.result)
+        repo_test_case_count = sum(len(tf.test_cases) for tf in result.result)
+        repo_test_method_count = sum(tc.number_of_methods for tf in result.result for tc in tf.test_cases)
+        line = [repo_name, repo_test_file_count, repo_test_case_count, repo_test_method_count] 
+        total = 0
+        for smell in ALL_SMELLS:
+            line.append(sum(repo_df[smell]))
+            total += sum(repo_df[smell])
+            #print(total)
+        line.append(total)
+        aggregated_lines.append(line)
 
 
-aggregated_df = pd.DataFrame(aggregated_lines, columns=['Date', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
-aggregated_df.to_csv(JSON_FILE_PATHS[0].parent / 'aggregated.csv', index=False)
-print('Aggregated result generated')
+    aggregated_df = pd.DataFrame(aggregated_lines, columns=['Date', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
+    aggregated_df.to_csv(JSON_FILE_PATHS[0].parent / 'aggregated.csv', index=False)
+    print('Aggregated result generated')
