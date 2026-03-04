@@ -37,36 +37,55 @@ def get_content_file_at_commit(commit_hash, file_path):
     return content
        
 def main():
-    file_path = "analyzer/tests/unit/test_option_parser.py"
-    hashes = get_hashes_of_file(file_path)#対象ファイルのパス(現在の階層含まないスラッシュなし)
-    times = get_commit_time(file_path)#対象ファイルのパス(現在の階層含まないスラッシュなし)
-    print(times)
-    i=0
-    for commits_hash in hashes:
+    #フォルダを読み込んでファイルを取得
+    folder_path = "src/mothertests/testing"
+    for filename in os.listdir(folder_path):
         
-        content = get_content_file_at_commit (commits_hash, file_path)#現在の階層含まない(スラッシュ含まない)
-        #print(f'Commit: {commits_hash}\nContent:\n{content}\n')    
+        file_path = os.path.join(folder_path, filename)
+        if os.path.isfile(file_path):
+            print(filename);    
+            hashes = get_hashes_of_file(file_path)#対象ファイルのパス(現在の階層含まないスラッシュなし)
+            times = get_commit_time(file_path)#対象ファイルのパス(現在の階層含まないスラッシュなし)
+            print(times)
+            i=0
+            for commits_hash in hashes:
+                
+                content = get_content_file_at_commit (commits_hash, file_path)#現在の階層含まない(スラッシュ含まない)
+                #print(f'Commit: {commits_hash}\nContent:\n{content}\n')    
 
-    #ファイルに内容を書き込む
-        path = Path(f'/Users/yamadanaruto/Desktop/mothertests/{times[i]}/test_{i}.py')
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
-        
-         
-       
-            #テストスメル検出するコマンドを実行
+            #ファイルに内容を書き込む
+                path = Path(f'/Users/yamadanaruto/Desktop/mothertests/{times[i]}/test_{i}.py')
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(content)
+                
+                
+            
+                 #テストスメル検出するコマンドを実行
+                result = subprocess.run(
+                            ['python3', '/Users/yamadanaruto/Downloads/PyNose-ASE2022/runner.py'],
+                                    capture_output=True,
+                                    text=True,
+                                    check=True
+                            )
+                delete_path = Path(f"/Users/yamadanaruto/Desktop/mothertests/{times[i]}")
+                if delete_path.exists():
+                    shutil.rmtree(delete_path)
+                    print("フォルダごと削除しました")
+                    i+=1
+        #pynose_output2を名前を変えてcollect_jsonに複製
         result = subprocess.run(
-                    ['python3', '/Users/yamadanaruto/Downloads/PyNose-ASE2022/runner.py'],
+                    ['cp','-r', '/Users/yamadanaruto/Desktop/pynose_output2', f'/Users/yamadanaruto/Desktop/collect_json/{filename}'],
                             capture_output=True,
                             text=True,
                             check=True
                     )
-        folder_path = Path(f"/Users/yamadanaruto/Desktop/mothertests/{times[i]}")
-        if folder_path.exists():
-            shutil.rmtree(folder_path)
-            print("フォルダごと削除しました")
-            i+=1
-  
+        #pynose_outout2のフォルダの中身をカラにする    
+        delete_path = Path("/Users/yamadanaruto/Desktop/pynose_output2")  
+        for item in delete_path.iterdir():
+            if item.is_dir():
+                shutil.rmtree(item)
+            else:
+                item.unlink()      
 if __name__ == "__main__":
     main()
 
