@@ -39,6 +39,9 @@ class Result:
 folder_path = "/Users/yamadanaruto/Desktop/collect_json"
 for foldername in os.listdir(folder_path):
     folder = os.path.join(folder_path,foldername)
+    #空のフォルダを削除する処理
+    if not os.listdir(folder):
+        continue
     DETECTOR_OUTPUT = Path(folder)
     JSON_FILE_PATHS = [p for p in DETECTOR_OUTPUT.iterdir() if p.is_file() and p.suffix == '.json']
     ALL_SMELLS = None
@@ -47,10 +50,14 @@ for foldername in os.listdir(folder_path):
     REPO_DATA_FRAMES = []
     REPO_RESULTS = []
     for json_file_path in JSON_FILE_PATHS:
-        with json_file_path.open() as f:
+        print(json_file_path)
+        with json_file_path.open() as f:    
             json_str = f.read()
 
         json_root = json.loads(json_str)
+        print(len(json_root))
+        if (len(json_root)==0):
+            continue
         if isinstance(json_root, list):
             json_root = {'result': json_root}
             result = Result.from_json(json.dumps(json_root))
@@ -75,7 +82,7 @@ for foldername in os.listdir(folder_path):
         REPO_DATA_FRAMES.append(df)
         REPO_RESULTS.append(result)
         count += 1
-
+    print(foldername)
     print(f'Converted {count} JSON file(s).')
 
     aggregated_lines = []
