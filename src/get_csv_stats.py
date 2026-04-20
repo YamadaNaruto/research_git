@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 from typing import List, Optional
+import subprocess
 
 import pandas as pd
 from dataclasses_json import dataclass_json, LetterCase
@@ -35,8 +36,14 @@ class FileResult:
 class Result:
     result: List[FileResult]
 
+result = subprocess.run(
+                ['find', '.', '-name', '.DS_Store', '-delete'],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                )
 #解析するフォルダを指定→ループで解析するフォルダ内のフォルダを指定→したのDETECTOR_OUTPUTをそのフォルダに指定してループする
-folder_path = "/Users/yamadanaruto/Desktop/collect_json"
+folder_path = "/Users/yamadanaruto/Desktop/pynose_output2"
 for foldername in os.listdir(folder_path):
     folder = os.path.join(folder_path,foldername)
     #空のフォルダを削除する処理
@@ -50,13 +57,12 @@ for foldername in os.listdir(folder_path):
     REPO_DATA_FRAMES = []
     REPO_RESULTS = []
     for json_file_path in JSON_FILE_PATHS:
-        print(json_file_path)
-        with json_file_path.open() as f:    
+        with json_file_path.open() as f:
             json_str = f.read()
-
+            #空ファイルかどうか
         json_root = json.loads(json_str)
-        print(len(json_root))
-        if (len(json_root)==0):
+        if len(json_root) == 0:
+            print("空")
             continue
         if isinstance(json_root, list):
             json_root = {'result': json_root}
@@ -87,12 +93,13 @@ for foldername in os.listdir(folder_path):
 
     aggregated_lines = []
     for repo_df, result in zip(REPO_DATA_FRAMES, REPO_RESULTS):
-        if len(repo_df) == 0:
-            continue
+     
+       
         repo_name = repo_df['repo_name'][0]
         repo_test_file_count = len(result.result)
         repo_test_case_count = sum(len(tf.test_cases) for tf in result.result)
         repo_test_method_count = sum(tc.number_of_methods for tf in result.result for tc in tf.test_cases)
+        repo_name = repo_name.replace('"', '')
         line = [repo_name, repo_test_file_count, repo_test_case_count, repo_test_method_count] 
         total = 0
         for smell in ALL_SMELLS:
@@ -103,6 +110,9 @@ for foldername in os.listdir(folder_path):
         aggregated_lines.append(line)
 
 
-    aggregated_df = pd.DataFrame(aggregated_lines, columns=['Date', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
+    if count == 0 or ALL_SMELLS is None:
+        print('Skipped aggregation (no valid files)')
+        continue
+    aggregated_df = pd.DataFrame(aggregated_lines, columns=['date', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
     aggregated_df.to_csv(JSON_FILE_PATHS[0].parent / 'aggregated.csv', index=False)
     print('Aggregated result generated')
