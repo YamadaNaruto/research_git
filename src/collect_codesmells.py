@@ -1,39 +1,75 @@
 #git log からコミットごとにコードスメルを検出してCSVに保存するスクリプト
 import subprocess
-import os
 import shutil
+import time
+import requests
+import csv
 from pathlib import Path
 from collect_testsmels import get_hashes_of_file,get_content_file_at_commit,get_commit_time
 
-file_path ="analyzer/codechecker_analyzer/buildlog/build_action.py"
-hashes = get_hashes_of_file(file_path)#解析するファイル指定（現在の階層含まない
-times = get_commit_time(file_path)#コミット時刻を取得(現在の階層含まない)
-print(times)
+SONAR_URL = "http://localhost:9000"
+SONAR_PROJECT_KEY = "detect-codesmells"
 
-i=0
-for commits_hash in hashes:
-    
-    content = get_content_file_at_commit (commits_hash, file_path)#現在の階層から
-    #print(f'Commit: {commits_hash}\nContent:\n{content}\n')    
+def get_code_smell_count():
+    url = f"{SONAR_URL}/api/measures/component"
+    params = {
+        "component": SONAR_PROJECT_KEY,
+        "metricKeys": "code_smells"
+    }
+    import os
+    token = os.environ.get("SONAR_TOKEN", "")
+    response = requests.get(url, params=params, auth=(token, ""))
+    response.raise_for_status()
+    measures = response.json()["component"]["measures"]
+    if not measures:
+        return 0
+    return int(measures[0]["value"])
 
-#ファイルに内容を書き込む
-    path = Path(f'/Users/yamadanaruto/research_git/codechecker/mothertests/codeing/{times[i]}.py')
+file_path = "src/pytest_cases/case_funcs.py"
+hashes = get_hashes_of_file(file_path)
+times = get_commit_time(file_path)
+
+
+results = []
+prev =None
+code_smell_count =get_code_smell_count()
+for i, commits_hash in enumerate(hashes):
+    content = get_content_file_at_commit(commits_hash, file_path)
+
+    path = Path(f'/Users/yamadanaruto/research_git/python-pytest-cases/mothertests/codeing/{times[i]}.py')#リポジトリ名に変える
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content)
+
+    result = subprocess.run(
+        ['sonar-scanner'],
+        capture_output=True,
+        text=True,
+        cwd='/Users/yamadanaruto/research_git/python-pytest-cases'
+    )
+    if result.returncode != 0:
+        print(result.stderr)
+        raise subprocess.CalledProcessError(result.returncode, 'sonar-scanner')
+
+    time.sleep(3)  # 解析完了を待つ
+
+    t_code_smell_count = get_code_smell_count()
+    if prev is not None:
+        code_smell_count = get_code_smell_count()-prev
+    prev = t_code_smell_count    
+
     
-    i+=1
-        #コードスメル検出するコマンドを実行
-        #sonarpropertiesのinclutionのとこを解析したいファイル(フォルダ)に指定
-result = subprocess.run(
-            ['sonar-scanner'],
-                    capture_output=True,
-                    text=True,
-                    check=True
-             )
-folder_path = Path(f"/Users/yamadanaruto/research_git/codechecker/mothertests/codeing")
+    print(f"{times[i]}: code_smells={code_smell_count}")
+    clean_time = times[i].strip('"')
+    results.append([clean_time, code_smell_count])
+
+folder_path = Path("/Users/yamadanaruto/research_git/python-pytest-cases/mothertests/codeing")#リポ名に変える
 if folder_path.exists():
     shutil.rmtree(folder_path)
-    print("フォルダごと削除しました")                        
+    print("フォルダごと削除しました")
 
-        
-            
+output_csv = Path("/Users/yamadanaruto/research_git/python-pytest-cases/codesmells.csv")#リポ名に変える
+with output_csv.open("w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["date", "code_smells"])
+    writer.writerows(results)
+print(f"CSVに保存しました: {output_csv}")
