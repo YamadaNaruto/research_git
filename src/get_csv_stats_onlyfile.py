@@ -3,8 +3,7 @@ import json
 import os
 from pathlib import Path
 from typing import List, Optional
-import subprocess
-import shutil
+
 import pandas as pd
 from dataclasses_json import dataclass_json, LetterCase
 
@@ -34,24 +33,8 @@ class FileResult:
 @dataclass_json(letter_case=LetterCase.CAMEL)
 @dataclass
 class Result:
-    result: List[FileResult]
-
-def main():
-    subprocess.run(
-        ['find', '.', '-name', '.DS_Store', '-delete'],
-        capture_output=True,
-        text=True,
-        check=True
-    )
-    #解析するフォルダを指定→ループで解析するフォルダ内のフォルダを指定→したのDETECTOR_OUTPUTをそのフォルダに指定してループする
-    folder_path = "/Users/yamadanaruto/Desktop/pynose_output2"
-    # for foldername in os.listdir(folder_path):
-    #     folder = os.path.join(folder_path,foldername)
-    #     #空のフォルダを削除する処理
-    #     if not os.listdir(folder):
-    #         continue
-    DETECTOR_OUTPUT = Path(folder_path)
-    OUTPUT_DIR = Path("/Users/yamadanaruto/research_git")
+    result: List[FileResult]    
+    DETECTOR_OUTPUT = Path("/Users/yamadanaruto/Desktop/pynose_output2")
     JSON_FILE_PATHS = [p for p in DETECTOR_OUTPUT.iterdir() if p.is_file() and p.suffix == '.json']
     ALL_SMELLS = None
 
@@ -59,12 +42,10 @@ def main():
     REPO_DATA_FRAMES = []
     REPO_RESULTS = []
     for json_file_path in JSON_FILE_PATHS:
-        with json_file_path.open() as f:
+        with json_file_path.open() as f:    
             json_str = f.read()
-            #空ファイルかどうか
         json_root = json.loads(json_str)
-        if len(json_root) == 0:
-            print("空")
+        if (len(json_root)==0):
             continue
         if isinstance(json_root, list):
             json_root = {'result': json_root}
@@ -86,23 +67,22 @@ def main():
 
             lines.append(line)
         df = pd.DataFrame(lines, columns=['repo_name', 'test_file', 'test_case'] + ALL_SMELLS)
-        #df.to_csv(OUTPUT_DIR / f'{json_file_path.stem}.csv', index=False)
+        df.to_csv(json_file_path.parent / f'{json_file_path.stem}.csv', index=False)
         REPO_DATA_FRAMES.append(df)
         REPO_RESULTS.append(result)
         count += 1
-
     print(f'Converted {count} JSON file(s).')
 
     aggregated_lines = []
     for repo_df, result in zip(REPO_DATA_FRAMES, REPO_RESULTS):
-
-
+        if len(repo_df) == 0:
+            continue
         repo_name = repo_df['repo_name'][0]
         repo_test_file_count = len(result.result)
         repo_test_case_count = sum(len(tf.test_cases) for tf in result.result)
         repo_test_method_count = sum(tc.number_of_methods for tf in result.result for tc in tf.test_cases)
         repo_name = repo_name.replace('"', '')
-        line = [repo_name, repo_test_file_count, repo_test_case_count, repo_test_method_count]
+        line = [repo_name, repo_test_file_count, repo_test_case_count, repo_test_method_count] 
         total = 0
         for smell in ALL_SMELLS:
             line.append(sum(repo_df[smell]))
@@ -111,26 +91,7 @@ def main():
         line.append(total)
         aggregated_lines.append(line)
 
-    if count == 0 or ALL_SMELLS is None:
-        print('Skipped aggregation (no valid files)')
-        return
 
     aggregated_df = pd.DataFrame(aggregated_lines, columns=['date', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
-    aggregated_df.to_csv(OUTPUT_DIR / 'aggregated.csv', index=False)
+    aggregated_df.to_csv(JSON_FILE_PATHS[0].parent / 'aggregated.csv', index=False)
     print('Aggregated result generated')
-    #フォルダの中身を削除
-    #shutil.rmtree("/Users/yamadanaruto/Desktop/pynose_output2")
-    #Path("/Users/yamadanaruto/Desktop/pynose_output2").mkdir()
-
-    subprocess.run(
-        ['python3', '/Users/yamadanaruto/research_git/src/merge_testsmell_and_codesmell.py'],
-        capture_output=True,
-        text=True,
-        check=True
-    )
-
-
-if __name__ == "__main__":
-    main()
-
-

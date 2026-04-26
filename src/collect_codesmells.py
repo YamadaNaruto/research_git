@@ -4,6 +4,7 @@ import shutil
 import time
 import requests
 import csv
+import os
 from pathlib import Path
 from collect_testsmels import get_hashes_of_file,get_content_file_at_commit,get_commit_time
 
@@ -24,52 +25,64 @@ def get_code_smell_count():
     if not measures:
         return 0
     return int(measures[0]["value"])
+#フォルダづつ処理できるようにする
+k=0
+folder_name = "picrust2"#このリポジトリ名
+folder_path = "/Users/yamadanaruto/research_git/picrust2/scripts"#解析するsrcフォルダ
+for curdir,dirs,files in os.walk(folder_path):#os.walkを使ってフォルダの中まで検出するように
+        for filename in files:
+            #.pyじゃなければスキップ
+            if not filename.endswith('.py'):
+                continue
+            print(filename)
+            file_path = os.path.join(curdir, filename)
+            hashes = get_hashes_of_file(file_path)
+            times = get_commit_time(file_path)
 
-file_path = "src/pytest_cases/case_funcs.py"
-hashes = get_hashes_of_file(file_path)
-times = get_commit_time(file_path)
 
+            results = []
+            temp_dir = Path(f'/Users/yamadanaruto/research_git/{folder_name}/mothertests/codeing')
+            temp_file = temp_dir / 'target.py'  # 毎回同じファイル名で上書き
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            for i, commits_hash in enumerate(hashes):
+                content = get_content_file_at_commit(commits_hash, file_path)
+                if content is None:
+                    continue
+                temp_file.write_text(content)
 
-results = []
-prev =None
-code_smell_count =get_code_smell_count()
-for i, commits_hash in enumerate(hashes):
-    content = get_content_file_at_commit(commits_hash, file_path)
+                result = subprocess.run(
+                    ['sonar-scanner'],
+                    capture_output=True,
+                    text=True,
+                    cwd=f'/Users/yamadanaruto/research_git/{folder_name}'
+                )
+                if result.returncode != 0:
+                    print(result.stderr)
+                    raise subprocess.CalledProcessError(result.returncode, 'sonar-scanner')
 
-    path = Path(f'/Users/yamadanaruto/research_git/python-pytest-cases/mothertests/codeing/{times[i]}.py')#リポジトリ名に変える
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content)
+                time.sleep(3)  # 解析完了を待つ
 
-    result = subprocess.run(
-        ['sonar-scanner'],
-        capture_output=True,
-        text=True,
-        cwd='/Users/yamadanaruto/research_git/python-pytest-cases'
-    )
-    if result.returncode != 0:
-        print(result.stderr)
-        raise subprocess.CalledProcessError(result.returncode, 'sonar-scanner')
+                code_smell_count = get_code_smell_count()
 
-    time.sleep(3)  # 解析完了を待つ
+                print(f"{times[i]}: code_smells={code_smell_count}")
+                clean_time = times[i].strip('"')
+                results.append([clean_time, code_smell_count])
 
-    t_code_smell_count = get_code_smell_count()
-    if prev is not None:
-        code_smell_count = get_code_smell_count()-prev
-    prev = t_code_smell_count    
+            folder_path = Path(f"/Users/yamadanaruto/research_git/{folder_name}/mothertests/codeing")#リポ名に変える
+            if folder_path.exists():
+                shutil.rmtree(folder_path)
+                print("フォルダごと削除しました")
 
-    
-    print(f"{times[i]}: code_smells={code_smell_count}")
-    clean_time = times[i].strip('"')
-    results.append([clean_time, code_smell_count])
-
-folder_path = Path("/Users/yamadanaruto/research_git/python-pytest-cases/mothertests/codeing")#リポ名に変える
-if folder_path.exists():
-    shutil.rmtree(folder_path)
-    print("フォルダごと削除しました")
-
-output_csv = Path("/Users/yamadanaruto/research_git/python-pytest-cases/codesmells.csv")#リポ名に変える
-with output_csv.open("w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerow(["date", "code_smells"])
-    writer.writerows(results)
-print(f"CSVに保存しました: {output_csv}")
+            output_csv = Path(f'/Users/yamadanaruto/research_git/src/add_code_csv/appregated_{k}.csv')#リポ名に変える
+            with output_csv.open("w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["date", "code_smells"])
+                writer.writerows(results)
+            print(f"CSVに保存しました: {output_csv}")
+            k+=1
+result = subprocess.run(
+                ['python3', '/Users/yamadanaruto/research_git/src/collect_testsmels.py'],
+                        capture_output=True,
+                        text=True,
+                        check=True
+                )     

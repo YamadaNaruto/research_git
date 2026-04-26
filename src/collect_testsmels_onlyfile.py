@@ -36,7 +36,7 @@ def get_content_file_at_commit(commit_hash, file_path):
     return content
        
 def main():
-    file_path = "web/server/tests/unit/test_metadata_parser.py"
+    file_path = "tests/test_hsp.py"
     hashes = get_hashes_of_file(file_path)#対象ファイルのパス(現在の階層含まないスラッシュなし)
     times = get_commit_time(file_path)#対象ファイルのパス(現在の階層含まないスラッシュなし)
     print(times)
@@ -55,7 +55,7 @@ def main():
        
             #テストスメル検出するコマンドを実行
         result = subprocess.run(
-                    ['python3', '/Users/yamadanaruto/Downloads/PyNose-ASE2022/runner.py'],
+                    ['python3', '/Users/yamadanaruto/Desktop/PyNose-ASE2022/runner.py'],
                             capture_output=True,
                             text=True,
                             check=True

@@ -1,0 +1,24 @@
+# SonarQube
+.scannerwork/
+sonar-project.properties
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# 外部リポジトリ（解析対象）
+picrust2/
+
+# 生成されたCSV・データ
+src/add_code_csv/
+aggregated.csv
+collect.csv
+collected.txt
+example.csv
+example1.csv
+example_graph.csv
+*.numbers
