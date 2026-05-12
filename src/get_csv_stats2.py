@@ -1,0 +1,123 @@
+from dataclasses import dataclass
+import json
+import os
+from pathlib import Path
+from typing import List, Optional
+import subprocess
+import shutil
+import pandas as pd
+from dataclasses_json import dataclass_json, LetterCase
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class DetectorResult:
+    name: str
+    has_smell: bool
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class TestCaseResult:
+    name: str
+    detector_results: List[DetectorResult]
+    number_of_methods: Optional[int] = None
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class FileResult:
+    name: str
+    test_cases: List[TestCaseResult]
+
+
+@dataclass_json(letter_case=LetterCase.CAMEL)
+@dataclass
+class Result:
+    result: List[FileResult]
+
+def get_csv(i):
+    subprocess.run(
+        ['find', '/Users/yamadanaruto/Desktop', '-name', '.DS_Store', '-delete'],
+        capture_output=True,
+        text=True,
+    )
+    #解析するフォルダを指定→ループで解析するフォルダ内のフォルダを指定→したのDETECTOR_OUTPUTをそのフォルダに指定してループする
+    folder_path = "/Users/yamadanaruto/Desktop/pynose_output2"
+   
+    DETECTOR_OUTPUT = Path(folder_path)
+    OUTPUT_DIR = Path("/Users/yamadanaruto/research_git/add_test_csv")
+    JSON_FILE_PATHS = [p for p in DETECTOR_OUTPUT.iterdir() if p.is_file() and p.suffix == '.json']
+    ALL_SMELLS = None
+    count = 0
+    REPO_DATA_FRAMES = []
+    REPO_RESULTS = []
+    for json_file_path in JSON_FILE_PATHS:
+        with json_file_path.open() as f:
+            json_str = f.read()
+            #空ファイルかどうか
+        json_root = json.loads(json_str)
+        if len(json_root) == 0:
+            print("空")
+            continue
+        if isinstance(json_root, list):
+            json_root = {'result': json_root}
+            result = Result.from_json(json.dumps(json_root))
+        else:
+            result = Result.from_json(json_str)
+        lines = []
+        for test_file, test_case in ((tf, tc) for tf in result.result for tc in tf.test_cases):
+            line = [json_file_path.stem, test_file.name, test_case.name]
+
+            detector_results = sorted(test_case.detector_results, key=lambda dr: dr.name)
+            if ALL_SMELLS is None:
+                ALL_SMELLS = [dr.name for dr in detector_results]
+            else:
+                assert ALL_SMELLS == [dr.name for dr in detector_results]
+
+            for detector_result in detector_results:
+                line.append(detector_result.has_smell)
+
+            lines.append(line)
+        df = pd.DataFrame(lines, columns=['repo_name', 'test_file', 'test_case'] + ALL_SMELLS)
+        #df.to_csv(OUTPUT_DIR / f'{json_file_path.stem}.csv', index=False)
+        REPO_DATA_FRAMES.append(df)
+        REPO_RESULTS.append(result)
+        count += 1
+
+    print(f'Converted {count} JSON file(s).')
+
+    aggregated_lines = []
+    for repo_df, result in zip(REPO_DATA_FRAMES, REPO_RESULTS):
+
+
+        repo_name = repo_df['repo_name'][0]
+        repo_test_file_count = len(result.result)
+        repo_test_case_count = sum(len(tf.test_cases) for tf in result.result)
+        repo_test_method_count = sum(tc.number_of_methods for tf in result.result for tc in tf.test_cases)
+        repo_name = repo_name.replace('"', '')
+        line = [repo_name, repo_test_file_count, repo_test_case_count, repo_test_method_count]
+        total = 0
+        for smell in ALL_SMELLS:
+            line.append(sum(repo_df[smell]))
+            total += sum(repo_df[smell])
+            #print(total)
+        line.append(total)
+        aggregated_lines.append(line)
+
+    if count == 0 or ALL_SMELLS is None:
+        print('Skipped aggregation (no valid files)')
+        shutil.rmtree("/Users/yamadanaruto/Desktop/pynose_output2", ignore_errors=True)
+        Path("/Users/yamadanaruto/Desktop/pynose_output2").mkdir()
+        return
+
+    aggregated_df = pd.DataFrame(aggregated_lines, columns=['date', 'test_file_count', 'test_case_count', 'test_method_count'] + ALL_SMELLS + ['total'])
+    aggregated_df.to_csv(OUTPUT_DIR / f'aggregated_{i}.csv', index=False)
+
+    print('Aggregated result generated')
+    shutil.rmtree("/Users/yamadanaruto/Desktop/pynose_output2", ignore_errors=True)
+    Path("/Users/yamadanaruto/Desktop/pynose_output2").mkdir()
+
+
+
+

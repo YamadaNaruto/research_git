@@ -2,14 +2,13 @@ import csv
 from datetime import datetime
 from pathlib import Path
 import pandas as pd
-from sort_with_timeline import merge_codesmells
+from sort_with_timeline import merge_codesmells, merge_testsmells
 #data1にcsvを読み取ってテストスメルを辞書型で格納
-tsmell_folderpath="/Users/yamadanaruto/research_git/aggregated.csv"
-df = pd.read_csv(tsmell_folderpath)
-data1 = df.to_dict("records")
+
+data1 = merge_testsmells("/Users/yamadanaruto/research_git/add_test_csv")
 
 "codesmellを入手"
-data2 =merge_codesmells("/Users/yamadanaruto/research_git/src/add_code_csv")
+data2 =merge_codesmells("/Users/yamadanaruto/research_git/add_code_csv")
 
 #dataを日付でソートする
 def sort_date(data):
@@ -19,7 +18,7 @@ def sort_date(data):
     #時系列ソート
     rows_sorted = sorted(
         data,
-        key=lambda x: datetime.strptime(x['date'], "%Y-%m-%d %H:%M:%S")
+        key=lambda x: datetime.strptime(x['date'][:19], "%Y-%m-%d %H:%M:%S")
     )
     result = []
     "totalかmaintainblityか"
@@ -34,8 +33,8 @@ def sort_date(data):
 
 
 def main():
-    result_Tsmells = sort_date(data1)
-    print(result_Tsmells)
+    result_Tsmells = data1
+
     result_Csmells = data2
 
     i = 0
@@ -50,11 +49,11 @@ def main():
 
         if i < len(result_Tsmells):
             next_tsmell_date = datetime.strptime(
-                result_Tsmells[i]['date'], "%Y-%m-%d %H:%M:%S"
+                result_Tsmells[i]['date'][:19], "%Y-%m-%d %H:%M:%S"
             )
         if t < len(result_Csmells):
             next_csmell_date = datetime.strptime(
-                result_Csmells[t]['date'], "%Y-%m-%d %H:%M:%S"
+                result_Csmells[t]['date'][:19], "%Y-%m-%d %H:%M:%S"
             )
 
         if next_csmell_date is None or (
@@ -62,12 +61,12 @@ def main():
         ):
             date = result_Tsmells[i]['date']
             latest_total = result_Tsmells[i]['total']
-            latest_codesmells = result_Csmells[t-1]['code_smells']
+            latest_codesmells = result_Csmells[t-1]['code_smells'] if t > 0 else None
             i += 1
         else:
             date = result_Csmells[t]['date']
             latest_codesmells = result_Csmells[t]['code_smells']
-            latest_total = result_Tsmells[i-1]['total']
+            latest_total = result_Tsmells[i-1]['total'] if i > 0 else None
             t += 1
 
         if latest_total is None or latest_codesmells is None:
